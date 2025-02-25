@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -38,7 +40,8 @@ import (
 // NotifierReconciler reconciles a Notifier object
 type NotifierReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	processedEvents sync.Map
 }
 
 type NotifierConfig struct {
@@ -125,6 +128,7 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NotifierReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.startCleanupRoutine()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&monitoringv1.Notifier{}).
 		Watches(
@@ -152,14 +156,20 @@ func (r *NotifierReconciler) publisherFactory(_ context.Context, notifier *monit
 
 func (r *NotifierReconciler) parseNotifierConfig(_ context.Context, notifier *monitoringv1.Notifier) *NotifierConfig {
 	return &NotifierConfig{
-		Namespaces:   toMap(notifier.Spec.Namespaces),
-		EventTypes:   toMap(notifier.Spec.EventTypes),
-		EventReasons: toMap(notifier.Spec.EventReasons),
+		Namespaces:       toMap(notifier.Spec.Namespaces),
+		EventTypes:       toMap(notifier.Spec.EventTypes),
+		EventReasons:     toMap(notifier.Spec.EventReasons),
+		EventObjectTypes: toMap(notifier.Spec.EventObjectTypes),
+		MessageContains:  notifier.Spec.MessageContains,
 	}
 }
 
 func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitoringv1.Notifier, event corev1.Event) bool {
 	config := r.parseNotifierConfig(ctx, notifier)
+
+	if _, exists := r.processedEvents.Load(event.UID); exists {
+		return false
+	}
 
 	if !config.Namespaces[event.Namespace] {
 		return false
@@ -173,7 +183,7 @@ func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitor
 		return false
 	}
 
-	if len(config.EventObjectTypes) > 0 && !config.EventReasons[event.InvolvedObject.Kind] {
+	if len(config.EventObjectTypes) > 0 && !config.EventObjectTypes[event.InvolvedObject.Kind] {
 		return false
 	}
 
@@ -186,7 +196,24 @@ func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitor
 		}
 	}
 
+	r.processedEvents.Store(event.UID, time.Now())
+
 	return true
+}
+
+func (r *NotifierReconciler) startCleanupRoutine() {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for range ticker.C {
+			now := time.Now()
+			r.processedEvents.Range(func(key, value interface{}) bool {
+				if t, ok := value.(time.Time); ok && now.Sub(t) > 5*time.Minute {
+					r.processedEvents.Delete(key)
+				}
+				return true
+			})
+		}
+	}()
 }
 
 func (r *NotifierReconciler) constructEventMessage(_ context.Context, notifier *monitoringv1.Notifier, event corev1.Event) string {
@@ -197,7 +224,7 @@ func (r *NotifierReconciler) constructEventMessage(_ context.Context, notifier *
 		prefix = settings.MessagePrefix
 	}
 
-	return fmt.Sprintf("%s*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s\n*Affecting Object Type:* %s\n*Affecting Object Type:* %s",
+	return fmt.Sprintf("*%s*\n*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s\n*Affecting Object Type:* %s\n*Affecting Object Type:* %s",
 		prefix,
 		event.InvolvedObject.Kind,
 		event.Namespace,
