@@ -1,8 +1,14 @@
 # notifier
-// TODO(user): Add simple overview of use/purpose
+The Notifier is a Kubernetes controller designed to monitor cluster events, specifically failures related to pod scheduling and image pulling. It listens for events such as ImagePullBackOff and ErrImagePull, then triggers alerts or logging mechanisms to notify users about deployment issues.
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+### Purpose
+- Detect and report ImagePullBackOff events.
+- Provide insights into pod failures in real-time.
+- Integrate with alerting systems (e.g., Slack, Prometheus, PagerDuty).
+- Enhance visibility into deployment errors for faster troubleshooting.
+
+### Current Support
+Slack: The Notifier currently supports sending alerts to Slack channels. Future updates may include integrations with other alerting systems.
 
 ## Getting Started
 
@@ -27,6 +33,12 @@ Make sure you have the proper permission to the registry if the above commands d
 
 ```sh
 make install
+```
+
+**Install Notifier using Helm:**
+
+```sh
+make helm-install
 ```
 
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
@@ -58,6 +70,12 @@ kubectl delete -k config/samples/
 
 ```sh
 make uninstall
+```
+
+**Uninstall Notifier using Helm:**
+
+```sh
+make helm-uninstall
 ```
 
 **UnDeploy the controller from the cluster:**
@@ -111,7 +129,7 @@ previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml
 is manually re-applied afterwards.
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+We welcome contributions to the Notifier project! Whether you're fixing a bug, adding a feature, or improving documentation, your help is appreciated.
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
