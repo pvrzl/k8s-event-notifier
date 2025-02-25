@@ -38,7 +38,7 @@ make install
 **Install Notifier using Helm:**
 
 ```sh
-make helm-install
+make helm-install IMG=<some-registry>/notifier:tag
 ```
 
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
