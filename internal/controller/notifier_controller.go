@@ -46,6 +46,7 @@ type NotifierConfig struct {
 	EventReasons map[string]bool
 }
 
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=monitoring.example.com,resources=notifiers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.example.com,resources=notifiers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=monitoring.example.com,resources=notifiers/finalizers,verbs=update
