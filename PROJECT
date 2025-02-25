@@ -5,6 +5,8 @@
 domain: example.com
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: notifier
 repo: github.com/example/notifier
 resources:

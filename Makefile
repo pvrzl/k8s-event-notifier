@@ -208,6 +208,29 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
+# Helm related variables
+HELM ?= helm
+HELM_RELEASE_NAME ?= notifier
+HELM_CHART_PATH ?= ./dist/chart
+HELM_NAMESPACE ?= notifier-system
+
+##@ Helm Deployment
+.PHONY: generate-helm
+generate-helm:
+	kubebuilder edit --plugins=helm/v1-alpha
+
+.PHONY: helm-install
+helm-install: manifests generate-helm
+	helm upgrade --install $(HELM_RELEASE_NAME) $(HELM_CHART_PATH) \
+		--namespace $(HELM_NAMESPACE) --create-namespace \
+		--set controllerManager.container.image.repository=$(shell echo $(IMG) | cut -d':' -f1) \
+		--set controllerManager.container.image.tag=$(shell echo $(IMG) | cut -d':' -f2)
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall the Helm release
+	$(HELM) uninstall $(HELM_RELEASE_NAME) --namespace $(HELM_NAMESPACE)
+
+
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
 # $2 - package url which can be installed
