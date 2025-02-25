@@ -58,6 +58,7 @@ spec:
                 description: |-
                   List of Kubernetes object types to monitor (e.g., Pod, Node, Deployment).
                   If not specified, events for all object types will be monitored.
+                  full list can be found at: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                 items:
                   type: string
                 type: array

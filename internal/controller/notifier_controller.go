@@ -94,7 +94,7 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			stringEvents := fmt.Sprintf("%+v", k8sEvent)
 			if r.shouldNotify(ctx, &notifier, k8sEvent) {
 				message := r.constructEventMessage(ctx, &notifier, k8sEvent)
-				log.Info("will send " + stringEvents)
+				r.logVerbose(ctx, &notifier, "will send "+stringEvents)
 				err := publisher.Send(ctx, message)
 				if err != nil {
 					log.Error(err, "failed to send webhook")
@@ -103,7 +103,7 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 				processedEvents = append(processedEvents, fmt.Sprintf("%s: %s", k8sEvent.Reason, k8sEvent.Message))
 			} else {
-				log.Info("not valid event" + stringEvents)
+				r.logVerbose(ctx, &notifier, "not valid event"+stringEvents)
 			}
 		}
 
@@ -132,6 +132,13 @@ func (r *NotifierReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&handler.EnqueueRequestForObject{}).
 		Named("notifier").
 		Complete(r)
+}
+
+func (r *NotifierReconciler) logVerbose(ctx context.Context, notifier *monitoringv1.Notifier, msg string, keysAndValues ...any) {
+	log := log.FromContext(ctx)
+	if notifier.Spec.DefaultSettings != nil && notifier.Spec.DefaultSettings.EnableVerbose {
+		log.Info(msg, keysAndValues...)
+	}
 }
 
 func (r *NotifierReconciler) publisherFactory(_ context.Context, notifier *monitoringv1.Notifier) (publisher.Publisher, error) {
