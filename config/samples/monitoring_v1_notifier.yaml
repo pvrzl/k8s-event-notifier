@@ -6,4 +6,27 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: notifier-sample
 spec:
-  # TODO(user): Add fields here
+  channel: slack
+  # List of namespaces to monitor
+  namespaces:
+    - default
+    - kube-system
+
+  # Event types to watch (e.g., Normal, Warning)
+  eventTypes:
+    - Warning
+
+  # Specific event reasons to notify about
+  eventReasons:
+    - ImagePullFailed
+    - CrashLoopBackOff
+    - OOMKilled
+    - FailedScheduling
+
+  # Slack webhook URL where notifications should be sent
+  webhook: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+
+  # Optional default settings
+  defaultSettings:
+    messagePrefix: "[K8s Alert] "
+
