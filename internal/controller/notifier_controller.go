@@ -88,9 +88,10 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		for _, k8sEvent := range eventList.Items {
+			stringEvents := fmt.Sprintf("%+v", k8sEvent)
 			if r.shouldNotify(ctx, &notifier, k8sEvent) {
 				message := r.constructEventMessage(ctx, &notifier, k8sEvent)
-				log.Info("will send", message)
+				log.Info("will send " + stringEvents)
 				err := publisher.Send(ctx, message)
 				if err != nil {
 					log.Error(err, "failed to send webhook")
@@ -98,6 +99,8 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				}
 
 				processedEvents = append(processedEvents, fmt.Sprintf("%s: %s", k8sEvent.Reason, k8sEvent.Message))
+			} else {
+				log.Info("not valid event" + stringEvents)
 			}
 		}
 
