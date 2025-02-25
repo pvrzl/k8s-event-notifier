@@ -48,7 +48,7 @@ spec:
                 description: Default settings to apply if not provided
                 properties:
                   enableVerbose:
-                    description: Enable detailed logging of events in Slack messages
+                    description: Enable detailed logging of events
                     type: boolean
                   messagePrefix:
                     description: Prefix for messages (e.g., "[K8s Alert]")

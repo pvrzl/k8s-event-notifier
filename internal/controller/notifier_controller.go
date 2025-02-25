@@ -62,16 +62,16 @@ type NotifierConfig struct {
 func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
 		log             = log.FromContext(ctx)
-		notifier        monitoringv1.Notifier
+		notifiers       monitoringv1.NotifierList
 		eventList       corev1.EventList
 		processedEvents []string
 	)
 
-	log.Info("will start the reconcile progress for notifier")
+	log.Info("Starting reconciliation process")
 
-	if err := r.Get(ctx, req.NamespacedName, &notifier); err != nil {
-		log.Error(err, "unable to fetch notifier")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	if err := r.List(ctx, &notifiers); err != nil {
+		log.Error(err, "Failed to list Notifier CRs")
+		return ctrl.Result{}, err
 	}
 
 	if err := r.List(ctx, &eventList); err != nil {
@@ -79,38 +79,39 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	publisher, err := r.publisherFactory(ctx, &notifier)
-	if err != nil {
-		log.Error(err, "failed to create publisher")
-		return ctrl.Result{}, err
-	}
-
-	for _, k8sEvent := range eventList.Items {
-		if r.shouldNotify(ctx, &notifier, k8sEvent) {
-			message := r.constructEventMessage(ctx, &notifier, k8sEvent)
-			err := publisher.Send(ctx, message)
-			if err != nil {
-				log.Error(err, "failed to send webhook")
-				continue
-			}
-
-			processedEvents = append(processedEvents, fmt.Sprintf("%s: %s", k8sEvent.Reason, k8sEvent.Message))
-		}
-	}
-
-	if len(processedEvents) > 0 {
-		notifier.Status.LastEventTime = &eventList.Items[len(eventList.Items)-1].LastTimestamp
-		notifier.Status.RecentEvents = processedEvents
-		notifier.Status.StatusMessage = fmt.Sprintf("Processed %d events", len(processedEvents))
-
-		if err := r.Status().Update(ctx, &notifier); err != nil {
-			log.Error(err, "failed to update SlackNotifier status")
+	for _, notifier := range notifiers.Items {
+		publisher, err := r.publisherFactory(ctx, &notifier)
+		if err != nil {
+			log.Error(err, "failed to create publisher")
 			return ctrl.Result{}, err
 		}
+
+		for _, k8sEvent := range eventList.Items {
+			if r.shouldNotify(ctx, &notifier, k8sEvent) {
+				message := r.constructEventMessage(ctx, &notifier, k8sEvent)
+				err := publisher.Send(ctx, message)
+				if err != nil {
+					log.Error(err, "failed to send webhook")
+					continue
+				}
+
+				processedEvents = append(processedEvents, fmt.Sprintf("%s: %s", k8sEvent.Reason, k8sEvent.Message))
+			}
+		}
+
+		if len(processedEvents) > 0 {
+			notifier.Status.LastEventTime = &eventList.Items[len(eventList.Items)-1].LastTimestamp
+			notifier.Status.RecentEvents = processedEvents
+			notifier.Status.StatusMessage = fmt.Sprintf("Processed %d events", len(processedEvents))
+
+			if err := r.Status().Update(ctx, &notifier); err != nil {
+				log.Error(err, "failed to update notifier status")
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
-	log.Info("reconcile progress success")
-
+	log.Info("Reconciliation successful")
 	return ctrl.Result{}, nil
 }
 
