@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,6 +37,10 @@ import (
 	"github.com/example/notifier/pkg/publisher"
 	"github.com/example/notifier/pkg/publisher/slack"
 )
+
+// ? should we move to config?
+// Define a rate limiter (allow max 1 event per second, with burst of 5)
+var eventRateLimiter = rate.NewLimiter(rate.Limit(1), 5)
 
 // NotifierReconciler reconciles a Notifier object
 type NotifierReconciler struct {
@@ -96,6 +101,11 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		for _, k8sEvent := range eventList.Items {
 			stringEvents := fmt.Sprintf("%+v", k8sEvent)
 			if r.shouldNotify(ctx, &notifier, k8sEvent) {
+				if err := eventRateLimiter.Wait(ctx); err != nil {
+					log.Error(err, "Rate limiting failed")
+					continue
+				}
+
 				message := r.constructEventMessage(ctx, &notifier, k8sEvent)
 				r.logVerbose(ctx, &notifier, "will send "+stringEvents)
 				err := publisher.Send(ctx, message)
@@ -202,6 +212,7 @@ func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitor
 }
 
 func (r *NotifierReconciler) startCleanupRoutine() {
+	// ? should this moved to config?
 	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		for range ticker.C {
