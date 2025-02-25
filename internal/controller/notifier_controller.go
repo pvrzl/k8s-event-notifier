@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -41,9 +42,11 @@ type NotifierReconciler struct {
 }
 
 type NotifierConfig struct {
-	Namespaces   map[string]bool
-	EventTypes   map[string]bool
-	EventReasons map[string]bool
+	Namespaces       map[string]bool
+	EventTypes       map[string]bool
+	EventReasons     map[string]bool
+	EventObjectTypes map[string]bool
+	MessageContains  []string
 }
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch
@@ -163,21 +166,38 @@ func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitor
 		return false
 	}
 
+	if len(config.EventObjectTypes) > 0 && !config.EventReasons[event.InvolvedObject.Kind] {
+		return false
+	}
+
+	for _, message := range config.MessageContains {
+		if !strings.Contains(
+			strings.ToLower(event.Message),
+			strings.ToLower(message),
+		) {
+			return false
+		}
+	}
+
 	return true
 }
 
 func (r *NotifierReconciler) constructEventMessage(_ context.Context, notifier *monitoringv1.Notifier, event corev1.Event) string {
+	// TODO: Introduce a template for better message formatting.
 	prefix := ""
 	settings := notifier.Spec.DefaultSettings
 	if settings != nil {
 		prefix = settings.MessagePrefix
 	}
-	return fmt.Sprintf("%s*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s",
+
+	return fmt.Sprintf("%s*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s\n*Affecting Object Type:* %s\n*Affecting Object Type:* %s",
 		prefix,
 		event.InvolvedObject.Kind,
 		event.Namespace,
 		event.Reason,
 		event.Message,
+		event.InvolvedObject.Kind,
+		event.ObjectMeta.Name,
 	)
 }
 

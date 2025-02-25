@@ -40,11 +40,27 @@ type NotifierSpec struct {
 
 	// Event types to notify on (e.g., Warning, Normal)
 	// +kubebuilder:validation:MinItems=1
+	// full list can be found at: https://github.com/kubernetes/kubernetes/blob/b11d0fbdd58394a62622787b38e98a620df82750/pkg/apis/core/types.go#L4670
 	EventTypes []string `json:"eventTypes"`
 
-	// Event reasons to filter notifications (e.g., ImagePullFailed, CrashLoopBackOff)
+	// List of specific event reasons to filter notifications (e.g., Created, Started, Failed, Killing).
+	// These are well-defined Kubernetes event reasons.
+	// full list can be found at: https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/events/event.go
 	// +optional
 	EventReasons []string `json:"eventReasons,omitempty"`
+
+	// List of substrings to match within event messages for filtering notifications.
+	// Useful for capturing issues like ImagePullFailed or CrashLoopBackOff,
+	// which are typically found in event messages rather than standard event reasons.
+	// If not specified, the event will not be filtered by this criteria.
+	// +optional
+	MessageContains []string `json:"messageContains,omitempty"`
+
+	// List of Kubernetes object types to monitor (e.g., Pod, Node, Deployment).
+	// If not specified, events for all object types will be monitored.
+	// full list can be found at: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+	// +optional
+	EventObjectTypes []string `json:"eventObjectTypes,omitempty"`
 
 	// Target webhook URL
 	// +kubebuilder:validation:Pattern=`^https?://.+`

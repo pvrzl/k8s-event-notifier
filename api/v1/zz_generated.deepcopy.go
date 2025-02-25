@@ -116,6 +116,16 @@ func (in *NotifierSpec) DeepCopyInto(out *NotifierSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.MessageContains != nil {
+		in, out := &in.MessageContains, &out.MessageContains
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.EventObjectTypes != nil {
+		in, out := &in.EventObjectTypes, &out.EventObjectTypes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.DefaultSettings != nil {
 		in, out := &in.DefaultSettings, &out.DefaultSettings
 		*out = new(NotifierDefaults)

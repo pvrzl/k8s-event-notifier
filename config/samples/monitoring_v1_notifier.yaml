@@ -18,10 +18,17 @@ spec:
 
   # Specific event reasons to notify about
   eventReasons:
+    - Failed
+
+  # Substrings to match within event messages for filtering notifications
+  messageContains:
     - ImagePullFailed
     - CrashLoopBackOff
-    - OOMKilled
-    - FailedScheduling
+
+  # Kubernetes object types to monitor (e.g., Pod, Node, Deployment)
+  # If not specified, events for all object types will be monitored
+  eventObjectTypes:
+    - Pod
 
   # Slack webhook URL where notifications should be sent
   webhook: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
