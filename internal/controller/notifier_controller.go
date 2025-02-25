@@ -90,6 +90,7 @@ func (r *NotifierReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		for _, k8sEvent := range eventList.Items {
 			if r.shouldNotify(ctx, &notifier, k8sEvent) {
 				message := r.constructEventMessage(ctx, &notifier, k8sEvent)
+				log.Info("will send", message)
 				err := publisher.Send(ctx, message)
 				if err != nil {
 					log.Error(err, "failed to send webhook")
