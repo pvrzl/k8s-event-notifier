@@ -61,7 +61,7 @@ type NotifierDefaults struct {
 	// +optional
 	MessagePrefix string `json:"messagePrefix,omitempty"`
 
-	// Enable detailed logging of events in Slack messages
+	// Enable detailed logging of events
 	// +optional
 	EnableVerbose bool `json:"enableVerbose,omitempty"`
 }
