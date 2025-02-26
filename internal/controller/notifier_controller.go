@@ -40,7 +40,7 @@ import (
 
 // ? should we move to config?
 // Define a rate limiter (allow max 1 event per second, with burst of 5)
-var eventRateLimiter = rate.NewLimiter(rate.Limit(1), 5)
+var eventRateLimiter = rate.NewLimiter(rate.Limit(1), 10)
 
 // NotifierReconciler reconciles a Notifier object
 type NotifierReconciler struct {
@@ -198,16 +198,20 @@ func (r *NotifierReconciler) shouldNotify(ctx context.Context, notifier *monitor
 	}
 
 	for _, message := range config.MessageContains {
-		if !strings.Contains(
+		if strings.Contains(
 			strings.ToLower(event.Message),
 			strings.ToLower(message),
 		) {
-			return false
+			r.processedEvents.Store(event.UID, time.Now())
+			return true
 		}
 	}
 
-	r.processedEvents.Store(event.UID, time.Now())
+	if len(config.MessageContains) > 0 {
+		return false
+	}
 
+	r.processedEvents.Store(event.UID, time.Now())
 	return true
 }
 
