@@ -22,7 +22,7 @@ spec:
 
   # Substrings to match within event messages for filtering notifications
   messageContains:
-    - ImagePullFailed
+    - ImagePullBackOff
     - CrashLoopBackOff
 
   # Kubernetes object types to monitor (e.g., Pod, Node, Deployment)
@@ -36,4 +36,5 @@ spec:
   # Optional default settings
   defaultSettings:
     messagePrefix: "[K8s Alert] "
+    enableVerbose: false
 

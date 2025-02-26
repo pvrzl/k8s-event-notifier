@@ -239,7 +239,7 @@ func (r *NotifierReconciler) constructEventMessage(_ context.Context, notifier *
 		prefix = settings.MessagePrefix
 	}
 
-	return fmt.Sprintf("*%s*\n*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s\n*Affecting Object Type:* %s\n*Affecting Object Type:* %s",
+	return fmt.Sprintf("*%s*\n*%s* in namespace *%s*\n*Reason:* %s\n*Message:* %s\n*Affecting Object Type:* %s\n*Affecting Object Name:* %s",
 		prefix,
 		event.InvolvedObject.Kind,
 		event.Namespace,
